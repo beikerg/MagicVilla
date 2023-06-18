@@ -4,7 +4,9 @@ using MagicVilla.Modelo.Dto;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace MagicVilla.Controllers
 {
@@ -14,20 +16,43 @@ namespace MagicVilla.Controllers
     {
         private readonly ILogger<VillaController> _logger;
         private readonly ApplicationDbContext _db;
-        public VillaController(ILogger<VillaController> logger, ApplicationDbContext db)
+        private readonly SoftlandDbContext _dbSoftland;
+
+        private readonly IConfiguration configuration;
+
+       
+        public VillaController(ILogger<VillaController> logger, ApplicationDbContext db, SoftlandDbContext dbSoftland, IConfiguration configuration)
         {
             _logger = logger;
             _db = db;
+            _dbSoftland = dbSoftland;
+            this.configuration = configuration;
 
         }
 
 
-        [HttpGet]
-        public ActionResult<IEnumerable<VillaDto>> GetVillas()
+        [HttpGet("{databaseName}")]
+
+        public ActionResult<IEnumerable<SwBDSoftland>>  GetDB(string databaseName)
         {
-            _logger.LogInformation("Obtener las Villas");
-            return Ok(_db.Villas.ToList()); // Con esto estariamos haciendo un "Select * from " a la base de datos tabla villa
+           
+
+            _logger.LogInformation("Obtener bases de datos");
+
+            return Ok(_dbSoftland.SwBDSoftland.ToList());
         }
+
+     
+
+
+
+
+        //[HttpGet]
+        //public ActionResult<IEnumerable<VillaDto>> GetVillas()
+        //{
+        //    _logger.LogInformation("Obtener las Villas");
+        //    return Ok(_db.Villas.ToList()); // Con esto estariamos haciendo un "Select * from " a la base de datos tabla villa
+        //}
 
         [HttpGet("{id:int}", Name ="GetVilla")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -58,7 +83,7 @@ namespace MagicVilla.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
 
-        public ActionResult<VillaDto> CrearVilla([FromBody] VillaDto villaDto)
+        public ActionResult<VillaDto> CrearVilla([FromBody] VillaCreateDto villaDto)
         {
             if(!ModelState.IsValid)  
             {
@@ -77,10 +102,6 @@ namespace MagicVilla.Controllers
                 return BadRequest(villaDto);
             }
 
-            if(villaDto.Id>0)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError);
-            }
 
             //villaDto.Id = VillaStore.villaList.OrderByDescending(v => v.Id).FirstOrDefault().Id + 1;
             //VillaStore.villaList.Add(villaDto);
@@ -99,7 +120,7 @@ namespace MagicVilla.Controllers
             _db.Villas.Add(modelo);
             _db.SaveChanges();
 
-            return CreatedAtRoute("GetVilla", new {id= villaDto.Id}, villaDto);
+            return CreatedAtRoute("GetVilla", new {id= modelo.Id}, modelo);
          }
 
         [HttpDelete("{id:int}")]
@@ -134,7 +155,7 @@ namespace MagicVilla.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
 
-        public IActionResult UpdateVilla(int id, [FromBody] VillaDto villaDto)
+        public IActionResult UpdateVilla(int id, [FromBody] VillaUpdateDto villaDto)
         {
             if(villaDto==null || id!= villaDto.Id)
             {
@@ -169,7 +190,7 @@ namespace MagicVilla.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
 
-        public IActionResult UpdatePartialVilla(int id, JsonPatchDocument<VillaDto> patchDto)
+        public IActionResult UpdatePartialVilla(int id, JsonPatchDocument<VillaUpdateDto> patchDto)
         {
             if (patchDto == null || id == 0)
             {
@@ -180,7 +201,7 @@ namespace MagicVilla.Controllers
 
             var villa = _db.Villas.AsNoTracking().FirstOrDefault(v => v.Id == id);
 
-            VillaDto villaDto = new()
+            VillaUpdateDto villaDto = new()
             {
                 Id = villa.Id,
                 Nombre = villa.Nombre,
