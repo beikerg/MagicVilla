@@ -22,11 +22,14 @@ namespace MagicVilla.Datos
         public DbSet<SwBDSoftland> SwBDSoftland { get; set; }
 
 
+
        
         public DbSet<Mesess> meses { get; set; }
         public DbSet<Personal> sw_personal { get; set; }
 
-       
+        public DbSet<PlanCuentas> cwpctas { get; set; }
+
+
     }
 }
 

@@ -1,32 +1,24 @@
 ﻿using MagicVilla.Datos;
 using MagicVilla.Modelo;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.JsonPatch;
-using Microsoft.Extensions.Configuration;
-using System;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using System.Security.Cryptography.X509Certificates;
+using Microsoft.EntityFrameworkCore;
 
 namespace MagicVilla.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
-    public class PersonalController : ControllerBase
+    public class PlanCuentasController : ControllerBase
     {
-        private readonly ILogger<PersonalController> _logger;
+        private readonly ILogger<PlanCuentasController> _logger;
         private readonly SoftlandDbContext _dbContext;
 
-        public PersonalController(ILogger<PersonalController> logger, SoftlandDbContext dbContext)
+        public PlanCuentasController(ILogger<PlanCuentasController> logger, SoftlandDbContext dbContext)
         {
             _dbContext = dbContext;
             _logger = logger;
         }
-
 
         private IActionResult CambiarBase(string databaseName)
         {
@@ -44,7 +36,7 @@ namespace MagicVilla.Controllers
                 //var count = _dbContext.sw_personal.Count();
 
                 var connectionString2 = _dbContext.Database.GetConnectionString();
- 
+
                 var personal = _dbContext.meses.Count();
 
                 return Ok(new { message = "La base de datos se ha cambiado correctamente.", connectionString2, personal });
@@ -70,68 +62,55 @@ namespace MagicVilla.Controllers
         }
 
 
-        [HttpGet("Personal")]
+        [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<Personal>> Get(string databaseName)
+
+        public ActionResult<IEnumerable<PlanCuentas>> Get(string databaseName)
         {
+            var result = CambiarBase(databaseName);
+
+            if(result is OkObjectResult)
+            {
+                var cuentas = _dbContext.cwpctas.ToList();
+                return Ok(cuentas);
+            }
+            else
+            {
+                return Ok(result);
+            }
+        }
+
+        [HttpGet("CuentaNivel")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+
+        public ActionResult<PlanCuentas> GetCuentaNivel(string databaseName) 
+        {
+            if(databaseName == null)
+            {
+                _logger.LogError("Error al traer datos ");
+                return BadRequest();
+            }
 
             var result = CambiarBase(databaseName);
 
             if(result is OkObjectResult)
             {
-                var personal = _dbContext.sw_personal.ToList();
-
-                return Ok(personal);
-            }
-            else
-            {
+                var cuentaTipo = _dbContext.cwpctas.Where(c => c.PCNIVEL == 1).ToList();
                 
-                return Ok(result);
-
-            } 
-
-        }
-
-        [HttpGet("rut")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-
-        public ActionResult<Personal> GetPersonal(string databaseName, string Ficha)
-        {
-            if(databaseName == null || Ficha == null ) 
-            {
-                _logger.LogError("Error al traer datos " + Ficha);
-                return BadRequest();
-            }
-
-            //Cambiar base de datos
-            var result = CambiarBase(databaseName);
-
-            if(result is OkObjectResult) 
-            {
-                var personal = _dbContext.sw_personal.FirstOrDefault(p => p.ficha == Ficha);
-
-                if(personal == null)
+                if(cuentaTipo == null)
                 {
-                    return NotFound(personal);
+                    return NotFound(cuentaTipo);
                 }
-
-                return Ok(personal);
+                return Ok(cuentaTipo);
             }
             else
             {
                 return BadRequest(result);
             }
-
         }
-
-        
-
-
-     
     }
 }
- 
